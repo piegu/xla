@@ -53,6 +53,7 @@
 #include "torch_xla/csrc/ops/max_pool2d.h"
 #include "torch_xla/csrc/ops/max_pool2d_backward.h"
 #include "torch_xla/csrc/ops/mean.h"
+#include "torch_xla/csrc/ops/narrow.h"
 #include "torch_xla/csrc/ops/native_batch_norm_backward.h"
 #include "torch_xla/csrc/ops/native_batch_norm_forward.h"
 #include "torch_xla/csrc/ops/not_supported.h"
@@ -1493,6 +1494,23 @@ XLATensor XLATensor::view(
     const XLATensor& input,
     tensorflow::gtl::ArraySlice<const xla::int64> output_size) {
   return input.CreateView(output_size);
+}
+
+XLATensor XLATensor::narrow(const XLATensor& input, xla::int64 dim,
+                            xla::int64 start, xla::int64 length) {
+  xla::int64 canonical_dim = GetCanonicalDimension(input, dim);
+  xla::int64 dim_size = input.size(dim);
+  // start being the end is valid, but not a valid dim specification.
+  xla::int64 canonical_start =
+      start != dim_size
+          ? XlaHelpers::GetCanonicalDimensionIndex(start, dim_size)
+          : start;
+  XLA_CHECK_GE(length, 0) << "narrow length must be positive";
+  XLA_CHECK_LE(canonical_start + length, dim_size)
+      << "start (" << canonical_start << ") + length (" << length
+      << ") exceeds dimension size (" << dim_size << ")";
+  return input.CreateFrom(ir::MakeNode<ir::ops::Narrow>(
+      input.GetIrValue(), canonical_dim, canonical_start, length));
 }
 
 XLATensor XLATensor::CreateView(

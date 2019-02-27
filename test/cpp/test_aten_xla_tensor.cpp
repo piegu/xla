@@ -1696,6 +1696,25 @@ TEST_F(AtenXlaTensorTest, TestViewOfViewMod) {
   });
 }
 
+TEST_F(AtenXlaTensorTest, TestNarrow) {
+  at::Tensor input = at::rand({3, 5}, at::TensorOptions(at::kFloat));
+  int rank = input.dim();
+  for (int dim = -rank; dim < rank; ++dim) {
+    int dim_size = input.size(dim);
+    for (int start = -dim_size; start <= dim_size; ++start) {
+      int canonical_start = start < 0 ? start + dim_size : start;
+      for (int length = 0; length <= dim_size - canonical_start; ++length) {
+        at::Tensor output = at::narrow(input, dim, start, length);
+        ForEachDevice([&](const Device& device) {
+          at::Tensor xla_input = bridge::CreateXlaTensor(input, device);
+          at::Tensor xla_output = at::narrow(xla_input, dim, start, length);
+          AllClose(output, xla_output);
+        });
+      }
+    }
+  }
+}
+
 TEST_F(AtenXlaTensorTest, TestLogSoftmax) {
   at::Tensor input = at::rand({5, 3, 4, 2}, at::TensorOptions(at::kFloat));
   ForEachDevice([&](const Device& device) {

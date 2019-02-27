@@ -238,6 +238,12 @@ class XLATensor {
       const XLATensor& input,
       tensorflow::gtl::ArraySlice<const xla::int64> output_size);
 
+  // Returns a new tensor that is a narrowed version of input tensor. The
+  // dimension dim is taken from start to start + length. The returned tensor
+  // and input share the same underlying storage.
+  static XLATensor narrow(const XLATensor& input, xla::int64 dim,
+                          xla::int64 start, xla::int64 length);
+
   static XLATensor cast(const XLATensor& input, at::ScalarType dtype);
 
   static XLATensor log_softmax(const XLATensor& input, xla::int64 dim);
