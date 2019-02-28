@@ -2191,6 +2191,19 @@ TEST_F(AtenXlaTensorTest, TestSplitWithSizes) {
   }
 }
 
+TEST_F(AtenXlaTensorTest, TestCross) {
+  at::Tensor input = GetTestTensor({4, 3});
+  at::Tensor other = GetTestTensor({4, 3});
+  int dim = 1;
+  at::Tensor result = at::cross(input, other, dim);
+  ForEachDevice([&](const Device& device) {
+    at::Tensor xla_input = bridge::CreateXlaTensor(input, device);
+    at::Tensor xla_other = bridge::CreateXlaTensor(other, device);
+    at::Tensor xla_result = at::cross(xla_input, xla_other, dim);
+    AllClose(result, xla_result);
+  });
+}
+
 TEST_F(AtenXlaTensorTest, TestTriu) {
   int size = 5;
   at::Tensor input = GetTestTensor({size, size});

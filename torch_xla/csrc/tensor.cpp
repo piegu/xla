@@ -1405,6 +1405,26 @@ void XLATensor::masked_fill_(XLATensor& input, const XLATensor& mask,
                                                      expanded_mask, value));
 }
 
+XLATensor XLATensor::cross(const XLATensor& input, const XLATensor& other,
+                           xla::int64 dim) {
+  std::vector<std::pair<xla::int64, xla::int64>> cross_product_dim_pairs = {
+      {1, 2}, {2, 0}, {0, 1}};
+  std::vector<XLATensor> xyz;
+  for (auto& dim_pair : cross_product_dim_pairs) {
+    xyz.push_back(sub(
+        mul(squeeze(slice(input, dim, dim_pair.first, dim_pair.first + 1, 1),
+                    dim),
+            squeeze(slice(other, dim, dim_pair.second, dim_pair.second + 1, 1),
+                    dim)),
+        mul(squeeze(slice(input, dim, dim_pair.second, dim_pair.second + 1, 1),
+                    dim),
+            squeeze(slice(other, dim, dim_pair.first, dim_pair.first + 1, 1),
+                    dim)),
+        at::Scalar(1)));
+  }
+  return stack(xyz, dim);
+}
+
 XLATensor XLATensor::triu(const XLATensor& input, xla::int64 diagonal) {
   return input.CreateFrom(
       ir::MakeNode<ir::ops::Triu>(input.GetIrValue(), diagonal));
